@@ -1,11 +1,13 @@
 use bevy::{prelude::*, window::WindowResolution};
 
-const PADDLE_SIZE: Vec2 = Vec2::new(6., 46.);
-const BALL_SIZE: Vec2 = Vec2::new(8., 8.);
-
 const WINDOW_TITLE: &str = "Pong";
 const WINDOW_WIDTH: f32 = 1138.;
 const WINDOW_HEIGHT: f32 = 720.;
+
+const PADDLE_SIZE: Vec2 = Vec2::new(6., 46.);
+const PADDLE_SPEED: f32 = 500.;
+
+const BALL_SIZE: Vec2 = Vec2::new(8., 8.);
 
 #[derive(Component)]
 pub struct Paddle {}
@@ -49,6 +51,32 @@ pub fn setup(mut commands: Commands) {
     ));
 }
 
+pub fn paddle_controls(
+    mut query: Query<&mut Transform, &Paddle>,
+    input: Res<Input<KeyCode>>,
+    time: Res<FixedTime>,
+) {
+    if let Ok(mut transform) = query.get_single_mut() {
+        let mut distance = 0.0;
+
+        if input.pressed(KeyCode::W) || input.pressed(KeyCode::Up) {
+            distance += 1.0;
+        }
+
+        if input.pressed(KeyCode::S) || input.pressed(KeyCode::Down) {
+            distance -= 1.0;
+        }
+
+        let new_position =
+            transform.translation.y + distance * PADDLE_SPEED * time.period.as_secs_f32();
+
+        let upper_limit = WINDOW_HEIGHT - PADDLE_SIZE.y / 2.;
+        let lower_limit = 0.0 + PADDLE_SIZE.y / 2.;
+
+        transform.translation.y = new_position.clamp(lower_limit, upper_limit);
+    }
+}
+
 fn main() {
     App::new()
         .insert_resource(ClearColor(Color::BLACK))
@@ -61,5 +89,6 @@ fn main() {
             ..Default::default()
         }))
         .add_systems(Startup, setup)
+        .add_systems(FixedUpdate, paddle_controls)
         .run();
 }
